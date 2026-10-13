@@ -1,0 +1,12 @@
+{
+  "name": "manager-library-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo data seeder for Manager Library. Talks to the API only (no database access).",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "seed": "node seed.mjs",
+    "test": "node --test"
+  }
+}

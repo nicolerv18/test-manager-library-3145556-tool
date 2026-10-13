@@ -48,3 +48,61 @@ No hay prórroga: suban avances parciales con commits pequeños durante la prueb
 | [`test-manager-library-3145556-page`](https://github.com/code-sena/test-manager-library-3145556-page) | Sitio público estático de presentación |
 | [`test-manager-library-3145556-infra`](https://github.com/code-sena/test-manager-library-3145556-infra) | Contenedores, red, volúmenes y motor de base de datos vacío |
 | [`test-manager-library-3145556-tool`](https://github.com/code-sena/test-manager-library-3145556-tool) | Utilidades: sembrador de datos de demostración |
+
+
+---
+
+# Manager Library — tool (demo data seeder)
+
+Fills a running Manager Library API with demo data **using only the HTTP contract** (no database access), as required by task T-21:
+
+| Data | Amount |
+|---|---|
+| Books (all five categories) | 42 |
+| Members | 10 |
+| Loans | 15 (10 returned, 2 open and not yet due, **3 overdue**) |
+| Users | 1 librarian (`bibliotecario`) next to the admin |
+
+Past and overdue loans are created with the `X-Demo-Now` header (api-contract §5). The API honors it **only when it runs with `APP_ENV=demo`**;
+the seeder detects when it was ignored and stops with a clear message.
+
+## Requirements
+
+Node.js 20+ (no dependencies to install).
+
+## Run
+
+1. In `infra/.env` set `APP_ENV=demo`, then restart the API: `docker compose up -d api` (from the `infra` repository).
+2. Export the admin credentials (same values as `infra/.env`) and run:
+
+```powershell
+$env:ADMIN_USERNAME = "<admin user>"
+$env:ADMIN_PASSWORD = "<admin password>"
+node seed.mjs
+```
+
+Optional: `API_URL` (default `http://localhost:8000/api/v1`) and `SEED_LIBRARIAN_PASSWORD` (otherwise a random one is printed once).
+No credential is stored in this repository; see `.env.example` for the variable names.
+
+The seeder is **re-runnable**: books and members are matched by ISBN / document number, and loans are created only if none exist yet.
+
+## Expected evidence
+
+```
+Books: 42
+Members: 10
+Loans created: 15
+Overdue lines: 3
+Report <from>..<to>: <n> rows; top: <title> (<times>)
+```
+
+`GET /loans/overdue` then returns 3 lines and `GET /reports/most-borrowed` has rows.
+
+## Tests
+
+```
+npm test
+```
+
+Checks the plan (minimums of T-21, exactly 3 overdue loans, no member ever blocked by an overdue line while seeding, never more than 3 unreturned
+books per member). The rule "the header is ignored outside demo mode" is tested in the API (`DemoHeaderClock`).
